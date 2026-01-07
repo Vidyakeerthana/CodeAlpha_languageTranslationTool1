@@ -1,0 +1,97 @@
+#CODE 
+
+import ipywidgets as widgets
+from IPython.display import display, clear_output, Audio
+from googletrans import Translator
+from gtts import gTTS
+import pyperclip
+import io
+
+translator = Translator()
+
+languages_dict = {
+    "English": "en",
+    "Hindi": "hi",
+    "Tamil": "ta",
+    "French": "fr",
+    "German": "de",
+    "Japanese": "ja",
+}
+
+text_input = widgets.Textarea(
+    placeholder='Enter text to translate...',
+    description='Input:',
+    layout=widgets.Layout(width='70%', height='80px')
+)
+
+src_lang_dropdown = widgets.Dropdown(
+    options=list(languages_dict.keys()),
+    value='English',
+    description='Source:'
+)
+
+dest_lang_dropdown = widgets.Dropdown(
+    options=list(languages_dict.keys()),
+    value='Hindi',
+    description='Target:'
+)
+
+translate_button = widgets.Button(description="Translate", button_style='info')
+copy_button = widgets.Button(description="Copy Text", button_style='success')
+speak_button = widgets.Button(description="Speak Text", button_style='warning')
+
+output_box = widgets.Output()
+translated_text_global = ""
+
+def on_translate_clicked(b):
+    global translated_text_global
+    with output_box:
+        clear_output()
+        text = text_input.value.strip()
+        if not text:
+            print("⚠️ Please enter text.")
+            return
+        try:
+            src = languages_dict[src_lang_dropdown.value]
+            dest = languages_dict[dest_lang_dropdown.value]
+            result = translator.translate(text, src=src, dest=dest)
+            translated_text_global = result.text
+            print("✅ Translated Text:\n")
+            print(translated_text_global)
+        except Exception as e:
+            print("❌ Error:", e)
+
+def on_copy_clicked(b):
+    if translated_text_global:
+        pyperclip.copy(translated_text_global)
+        with output_box:
+            print("\n📋 Copied to clipboard!")
+
+def on_speak_clicked(b):
+    if translated_text_global:
+        try:
+            tts = gTTS(
+                text=translated_text_global,
+                lang=languages_dict[dest_lang_dropdown.value]
+            )
+            fp = io.BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            display(Audio(fp.read(), autoplay=True))
+        except Exception as e:
+            with output_box:
+                print("❌ Speech Error:", e)
+
+translate_button.on_click(on_translate_clicked)
+copy_button.on_click(on_copy_clicked)
+speak_button.on_click(on_speak_clicked)
+
+display(
+    text_input,
+    src_lang_dropdown,
+    dest_lang_dropdown,
+    translate_button,
+    copy_button,
+    speak_button,
+    output_box
+)
